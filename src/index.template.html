@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Planner Contabilidade</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #f3f6fb; }
+  * { box-sizing: border-box; }
+  .tv {
+    font-family: "Segoe UI", Roboto, "Samsung One", "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a; font-size: 16px; height: 100vh; overflow: hidden; position: relative;
+    background: radial-gradient(1200px 500px at 0% 0%, #e8f0ff 0%, rgba(232,240,255,0) 60%), radial-gradient(900px 500px at 100% 100%, #ecfdf3 0%, rgba(236,253,243,0) 55%), #f3f6fb;
+    display: grid; grid-template-rows: auto auto auto 1fr auto; grid-gap: .9em; gap: .9em; padding: 1em 1.4em 1em;
+  }
+  .card { background: #fff; border-radius: 1.1em; box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 20px rgba(15,23,42,.06); }
+
+  /* Cabeçalho */
+  .tv-head { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: .7em 1.3em; }
+  .tv-brand { display: grid; grid-template-columns: auto auto auto; grid-gap: 1.1em; gap: 1.1em; align-items: center; justify-content: start; }
+  .tv-org { text-align: center; }
+  .tv-logo { width: 7.5em; height: 3.07em; margin: 0 auto .3em; background: #1e3a5f; -webkit-mask: url("data:image/png;base64,__LOGO__") center / contain no-repeat; mask: url("data:image/png;base64,__LOGO__") center / contain no-repeat; }
+  .tv-org-name { margin: 0; font-size: 1.1em; font-weight: 700; letter-spacing: .06em; color: #1e3a5f; white-space: nowrap; line-height: 1; }
+  .tv-divider { width: 1px; height: 3.5em; background: #e5eaf2; }
+  .tv-title { margin: 0; font-weight: 700; font-size: 1.85em; letter-spacing: -.02em; line-height: 1.1; }
+  .tv-right { text-align: right; }
+  .tv-clock { font-size: 1.7em; font-weight: 600; line-height: 1; cursor: pointer; }
+  .tv-date { color: #64748b; font-size: .85em; margin-top: .3em; }
+  .tv-upd { color: #94a3b8; font-size: .72em; margin-top: .2em; }
+  .tv-upd.velho { color: #ef4444; font-weight: 600; }
+
+  /* Indicadores */
+  .tv-kpis { display: grid; grid-template-columns: repeat(4, 1fr); grid-gap: 1em; gap: 1em; }
+  .tv-kpi { position: relative; overflow: hidden; padding: .9em 1.2em .9em 1.4em; display: grid; grid-template-columns: 1fr auto; align-items: center; }
+  .tv-kpi:before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: .3em; background: #1e3a5f; }
+  .tv-kpi.conc:before { background: #16a34a; } .tv-kpi.prazo:before { background: #3b82f6; } .tv-kpi.atr:before { background: #ef4444; }
+  .tv-kpi-label { margin: 0; color: #64748b; font-size: .9em; font-weight: 500; }
+  .tv-dot { display: inline-block; width: .6em; height: .6em; border-radius: 50%; margin-right: .4em; background: #1e3a5f; vertical-align: .05em; }
+  .conc .tv-dot { background: #16a34a; } .prazo .tv-dot { background: #3b82f6; } .atr .tv-dot { background: #ef4444; }
+  .tv-kpi-num { margin: .1em 0 0; font-weight: 700; font-size: 2.6em; letter-spacing: -.03em; line-height: 1.05; }
+  .tv-kpi-num.bad { color: #ef4444; }
+  .tv-kpi-note { margin: .1em 0 0; color: #64748b; font-size: .8em; }
+  .tv-ring { width: 4.4em; height: 4.4em; border-radius: 50%; background: #edf1f7; position: relative; }
+  .tv-ring-in { position: absolute; top: 12%; left: 12%; width: 76%; height: 76%; border-radius: 50%; background: #fff; color: #16a34a; font-weight: 700; font-size: .95em; display: flex; align-items: center; justify-content: center; }
+
+  /* Navegação */
+  .tv-bar-top { display: grid; grid-template-columns: auto 1fr; grid-gap: 1em; gap: 1em; align-items: center; }
+  .tv-nav { display: inline-grid; grid-auto-flow: column; grid-gap: .3em; gap: .3em; padding: .3em; border-radius: 999px; }
+  .tv-nav button, .tv-ctrl button { font: inherit; font-size: .85em; font-weight: 500; padding: .45em 1.1em; border-radius: 999px; border: 0; background: transparent; color: #64748b; cursor: pointer; }
+  .tv-nav button.on { background: #0f172a; color: #fff; }
+  .tv-ctrl { display: grid; grid-template-columns: 1fr auto auto; grid-gap: .6em; gap: .6em; align-items: center; }
+  .tv-ctrl button { border: 1px solid #e5eaf2; background: #fff; }
+  .tv-ctrl button.dark { background: #0f172a; color: #fff; border-color: #0f172a; }
+  .tv-track { height: .35em; border-radius: 999px; background: #e5eaf2; overflow: hidden; }
+  .tv-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #16a34a); }
+
+  /* Telas */
+  .tv-slide { padding: 1em 1.4em 1.1em; display: grid; grid-template-rows: auto 1fr; overflow: hidden; min-height: 0; }
+  .tv-slide.hide { display: none; }
+  .tv-slide-head { display: grid; grid-template-columns: 1fr auto; grid-gap: 1em; gap: 1em; align-items: end; margin-bottom: .8em; padding-bottom: .6em; border-bottom: 1px solid #e5eaf2; }
+  .tv-h2 { margin: 0; font-size: 1.5em; font-weight: 700; letter-spacing: -.02em; }
+  .tv-note { margin: .25em 0 0; color: #64748b; font-size: .85em; }
+  .tv-legend span { display: inline-block; margin-left: .5em; padding: .3em .8em; border-radius: 999px; background: #f3f6fb; font-size: .85em; font-weight: 500; }
+  .tv-sw { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: .4em; vertical-align: .02em; }
+  .c-conc { background: #16a34a; } .c-prazo { background: #3b82f6; } .c-atr { background: #ef4444; }
+  .tv-body { overflow: hidden; min-height: 0; position: relative; }
+  .tv-bars { display: flex; flex-direction: column; justify-content: space-around; height: 100%; }
+  .tv-row { display: grid; grid-template-columns: 22% 1fr 6.5em; grid-gap: 1em; gap: 1em; align-items: center; margin: .2em 0; }
+  .tv-name { font-size: 1.05em; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tv-bar { display: flex; height: 1.8em; }
+  .tv-seg { height: 100%; min-width: 4px; margin-right: 3px; border-radius: .5em; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: .9em; overflow: hidden; white-space: nowrap; }
+  .tv-seg:last-child { margin-right: 0; }
+  .tv-seg.s-conc { background: linear-gradient(180deg, #22c55e, #16a34a); }
+  .tv-seg.s-prazo { background: linear-gradient(180deg, #60a5fa, #3b82f6); }
+  .tv-seg.s-atr { background: linear-gradient(180deg, #f87171, #ef4444); }
+  .tv-val { text-align: right; line-height: 1.15; }
+  .tv-val b { display: block; font-size: 1.25em; font-weight: 700; }
+  .tv-val small { color: #64748b; font-size: .75em; }
+  .tv-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  .tv-table th { text-align: left; font-weight: 600; color: #64748b; font-size: .78em; text-transform: uppercase; letter-spacing: .04em; padding: .3em .8em .5em; }
+  .tv-table td { padding: .45em .8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tv-table tbody tr:nth-child(odd) td { background: #f3f6fb; }
+  .tv-table tbody td:first-child { border-radius: .6em 0 0 .6em; font-weight: 500; }
+  .tv-table tbody td:last-child { border-radius: 0 .6em .6em 0; }
+  .tv-table .num { text-align: right; }
+  .tv-late { color: #ef4444; font-weight: 700; }
+  .tv-pg { margin: 0; font-size: .85em; color: #64748b; padding: .3em .8em; border-radius: 999px; background: #f3f6fb; }
+  .tv-empty { text-align: center; font-size: 1.4em; color: #64748b; padding-top: 2em; }
+  .tv-msg { text-align: center; color: #64748b; font-size: 1.2em; padding-top: 3em; }
+
+  .tv-foot { margin: 0; text-align: center; font-size: .9em; line-height: 1.35; color: #64748b; font-style: italic; }
+  .tv-foot b { font-style: normal; font-weight: 600; color: #0f172a; }
+
+  /* Lembrete de ponto */
+  .tv-ponto { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(15,23,42,.6); }
+  .tv-ponto.hide { display: none; }
+  .tv-ponto-card { background: #fff; border-radius: 1.6em; padding: 2.2em 3.2em; text-align: center; box-shadow: 0 20px 60px rgba(15,23,42,.35); border-top: .5em solid #3b82f6; max-width: 80%; }
+  .tv-ponto-icon { width: 4.5em; height: 4.5em; margin: 0 auto .8em; border-radius: 50%; background: #e8f0ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; animation: pulse 1.6s ease-out infinite; }
+  .tv-ponto-icon svg { width: 58%; height: 58%; }
+  .tv-ponto-title { margin: 0; font-size: 3.2em; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+  .tv-ponto-sub { margin: .5em 0 0; font-size: 1.5em; color: #64748b; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,.45); } 100% { box-shadow: 0 0 0 1.2em rgba(59,130,246,0); } }
+  .fade { animation: fade .5s ease-out; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="tv" id="tv">
+  <div class="tv-ponto hide" id="ponto" role="alert">
+    <div class="tv-ponto-card">
+      <div class="tv-ponto-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
+      <p class="tv-ponto-title">Hora de registrar o ponto!</p>
+      <p class="tv-ponto-sub">Não esqueça de bater o seu ponto agora.</p>
+    </div>
+  </div>
+
+  <header class="tv-head card">
+    <div class="tv-brand">
+      <div class="tv-org">
+        <div class="tv-logo" aria-hidden="true"></div>
+        <p class="tv-org-name">ULB - MISSÃO SERGIPE</p>
+      </div>
+      <div class="tv-divider"></div>
+      <h1 class="tv-title">Planner Contabilidade</h1>
+    </div>
+    <div class="tv-right">
+      <div class="tv-clock" id="relogio" title="Clique para ver o lembrete de ponto">--:--</div>
+      <div class="tv-date" id="data"></div>
+      <div class="tv-upd" id="atualizado"></div>
+    </div>
+  </header>
+
+  <section class="tv-kpis">
+    <div class="tv-kpi card"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Total de tarefas</p><p class="tv-kpi-num" id="k-total">—</p><p class="tv-kpi-note">no plano</p></div></div>
+    <div class="tv-kpi card conc"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Concluídas</p><p class="tv-kpi-num" id="k-conc">—</p><p class="tv-kpi-note">do total do plano</p></div><div class="tv-ring" id="anel"><div class="tv-ring-in" id="anel-pct">—</div></div></div>
+    <div class="tv-kpi card prazo"><div><p class="tv-kpi-label"><i class="tv-dot"></i>No prazo</p><p class="tv-kpi-num" id="k-prazo">—</p><p class="tv-kpi-note">abertas, prazo não vencido</p></div></div>
+    <div class="tv-kpi card atr"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Atrasadas</p><p class="tv-kpi-num" id="k-atr">—</p><p class="tv-kpi-note">abertas, prazo vencido</p></div></div>
+  </section>
+
+  <div class="tv-bar-top">
+    <nav class="tv-nav card" id="nav">
+      <button type="button" data-step="buckets">Por bucket</button>
+      <button type="button" data-step="usuarios">Por usuário</button>
+      <button type="button" data-step="atrasadas">Tarefas atrasadas</button>
+    </nav>
+    <div class="tv-ctrl">
+      <div class="tv-track"><div class="tv-fill" id="fill"></div></div>
+      <button type="button" id="pausa">Pausar</button>
+      <button type="button" id="cheia" class="dark">Tela cheia</button>
+    </div>
+  </div>
+
+  <div class="tv-stage" style="position:relative; min-height:0; display:grid;">
+    <section class="tv-slide card" data-slide="buckets">
+      <div class="tv-slide-head">
+        <div><h2 class="tv-h2">Tarefas por bucket</h2><p class="tv-note">Concluídas, no prazo e atrasadas em cada bucket. À direita, o % concluído.</p></div>
+        <div class="tv-legend"><span><i class="tv-sw c-conc"></i>Concluídas</span><span><i class="tv-sw c-prazo"></i>No prazo</span><span><i class="tv-sw c-atr"></i>Atrasadas</span></div>
+      </div>
+      <div class="tv-body"><div class="tv-bars" id="g-buckets"><div class="tv-msg">Carregando…</div></div></div>
+    </section>
+
+    <section class="tv-slide card hide" data-slide="usuarios">
+      <div class="tv-slide-head">
+        <div><h2 class="tv-h2">Tarefas por usuário</h2><p class="tv-note">Uma tarefa com duas pessoas conta para as duas. À direita, o % concluído.</p></div>
+        <div class="tv-legend"><span><i class="tv-sw c-conc"></i>Concluídas</span><span><i class="tv-sw c-prazo"></i>No prazo</span><span><i class="tv-sw c-atr"></i>Atrasadas</span></div>
+      </div>
+      <div class="tv-body"><div class="tv-bars" id="g-usuarios"><div class="tv-msg">Carregando…</div></div></div>
+    </section>
+
+    <section class="tv-slide card hide" data-slide="atrasadas">
+      <div class="tv-slide-head">
+        <div><h2 class="tv-h2"><span id="a-total">—</span> tarefas atrasadas</h2><p class="tv-note">Abertas com prazo já vencido, das mais antigas para as mais recentes.</p></div>
+        <p class="tv-pg" id="a-pag"></p>
+      </div>
+      <div class="tv-body" id="a-body">
+        <table class="tv-table">
+          <colgroup><col style="width:40%"><col style="width:24%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>
+          <thead><tr><th>Tarefa</th><th>Responsável</th><th>Bucket</th><th class="num">Vencimento</th><th class="num">Dias de atraso</th></tr></thead>
+          <tbody id="a-linhas"></tbody>
+        </table>
+        <div class="tv-empty hide-me" id="a-vazio" style="display:none">Nenhuma tarefa atrasada.</div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="tv-foot">“E tudo quanto fizerdes, fazei-o de todo o coração, como para o Senhor e não para homens.” <b>Colossenses 3:23</b></footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // ===== Configuração =====
+  var SEGUNDOS = 20;              // telas por bucket e por usuário
+  var SEGUNDOS_ATRASADAS = 5;     // cada página da lista de atrasadas
+  var HORARIOS_PONTO = ['07:30', '12:00', '13:00', '17:30', '19:00'];
+  var MINUTOS_PONTO = 5;
+  var ATUALIZAR_DADOS_MIN = 10;   // busca data.json de novo a cada 10 min
+  var RECARREGAR_PAGINA_H = 6;    // recarrega a página inteira (pega mudanças de layout)
+  var FUSO_OFFSET_H = -3;         // Sergipe, UTC-3
+
+  var $ = function (id) { return document.getElementById(id); };
+  var dados = null;
+  var estado = { passo: 0, pagina: 0, paginas: 1, porPagina: 10, pausado: false, t0: Date.now(), demoAte: 0 };
+
+  function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+  function fmtInt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  function fmtPct(v) { return Math.round(v * 100) + '%'; }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function limpar(e) { while (e.firstChild) e.removeChild(e.firstChild); }
+  function sergipe(d) { return new Date(d.getTime() + FUSO_OFFSET_H * 3600000); }
+
+  // ===== Tamanho proporcional à tela =====
+  function ajustarFonte() {
+    var w = window.innerWidth, h = window.innerHeight;
+    var fs = Math.max(9, Math.min(w * 0.0115, h * 0.0185));
+    var tv = $('tv');
+    tv.style.fontSize = fs + 'px';
+    tv.style.height = h + 'px';
+  }
+
+  // Encolhe o conteúdo da tela atual até caber.
+  function ajustarCorpo() {
+    var slides = document.querySelectorAll('.tv-slide');
+    for (var i = 0; i < slides.length; i++) {
+      if (slides[i].className.indexOf('hide') >= 0) continue;
+      var body = slides[i].querySelector('.tv-body');
+      var sc = 1;
+      body.style.fontSize = '1em';
+      estado.corpoH = body.clientHeight;
+      while (body.scrollHeight > body.clientHeight + 1 && sc > 0.55) {
+        sc -= 0.05;
+        body.style.fontSize = sc + 'em';
+      }
+    }
+  }
+
+  // ===== Cálculos =====
+  function situacao(t, agora) {
+    if (t.p >= 100) return 'conc';
+    if (t.v && Date.parse(t.v) < agora) return 'atr';
+    return 'prazo';
+  }
+
+  function agrupar(chaves) {
+    var agora = Date.now(), mapa = {}, ordem = [];
+    dados.tarefas.forEach(function (t) {
+      var ks = chaves(t);
+      var s = situacao(t, agora);
+      ks.forEach(function (k) {
+        if (!mapa[k]) { mapa[k] = { nome: k, total: 0, conc: 0, prazo: 0, atr: 0 }; ordem.push(k); }
+        mapa[k].total++; mapa[k][s]++;
+      });
+    });
+    return ordem.map(function (k) { return mapa[k]; }).sort(function (a, b) { return b.total - a.total || (a.nome < b.nome ? -1 : 1); });
+  }
+
+  function atrasadas() {
+    var agora = Date.now();
+    return dados.tarefas.filter(function (t) { return situacao(t, agora) === 'atr'; }).map(function (t) {
+      var iso = t.v.slice(0, 10);
+      return {
+        t: t.t, b: t.b, r: t.r.length ? t.r.join(', ') : 'Sem responsável',
+        v: iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4),
+        d: Math.floor((agora - Date.parse(t.v)) / 86400000)
+      };
+    }).sort(function (a, b) { return b.d - a.d || (a.t < b.t ? -1 : 1); });
+  }
+
+  // ===== Desenho =====
+  function desenharResumo() {
+    var agora = Date.now(), total = dados.tarefas.length, c = { conc: 0, prazo: 0, atr: 0 };
+    dados.tarefas.forEach(function (t) { c[situacao(t, agora)]++; });
+    $('k-total').textContent = fmtInt(total);
+    $('k-conc').textContent = fmtInt(c.conc);
+    $('k-prazo').textContent = fmtInt(c.prazo);
+    $('k-atr').textContent = fmtInt(c.atr);
+    $('k-atr').className = 'tv-kpi-num' + (c.atr > 0 ? ' bad' : '');
+    $('a-total').textContent = fmtInt(c.atr);
+    var pct = total ? c.conc / total : 0;
+    $('anel-pct').textContent = fmtPct(pct);
+    $('anel').style.background = 'conic-gradient(#16a34a ' + (pct * 100) + '%, #edf1f7 0)';
+  }
+
+  function desenharBarras(alvo, linhas) {
+    var box = $(alvo);
+    limpar(box);
+    linhas.forEach(function (r) {
+      var row = el('div', 'tv-row');
+      row.appendChild(el('span', 'tv-name', r.nome));
+      var bar = el('div', 'tv-bar');
+      [['conc', 's-conc'], ['prazo', 's-prazo'], ['atr', 's-atr']].forEach(function (p) {
+        if (!r[p[0]]) return;
+        var w = r[p[0]] / r.total * 100;
+        var seg = el('div', 'tv-seg ' + p[1], w >= 5 ? fmtInt(r[p[0]]) : '');
+        seg.style.width = w + '%';
+        bar.appendChild(seg);
+      });
+      row.appendChild(bar);
+      var val = el('span', 'tv-val');
+      val.appendChild(el('b', '', fmtPct(r.conc / r.total)));
+      val.appendChild(el('small', '', fmtInt(r.conc) + ' de ' + fmtInt(r.total)));
+      row.appendChild(val);
+      box.appendChild(row);
+    });
+  }
+
+  function paginar() {
+    var lista = atrasadas();
+    var fs = parseFloat($('tv').style.fontSize) || 16;
+    var corpo = $('a-body').clientHeight || estado.corpoH || window.innerHeight * 0.45;
+    var linhaH = estado.linhaH || 2.1 * fs, cabH = estado.cabH || 2.2 * fs;
+    estado.porPagina = Math.max(3, Math.min(25, Math.floor((corpo - cabH - 4) / linhaH)));
+    estado.paginas = Math.max(1, Math.ceil(lista.length / estado.porPagina));
+    if (estado.pagina >= estado.paginas) estado.pagina = 0;
+    return lista;
+  }
+
+  function desenharAtrasadas() {
+    var lista = paginar();
+    var tb = $('a-linhas');
+    limpar(tb);
+    $('a-vazio').style.display = lista.length ? 'none' : 'block';
+    var ini = estado.pagina * estado.porPagina;
+    lista.slice(ini, ini + estado.porPagina).forEach(function (r) {
+      var tr = el('tr');
+      tr.appendChild(el('td', '', r.t));
+      tr.appendChild(el('td', '', r.r));
+      tr.appendChild(el('td', '', r.b));
+      tr.appendChild(el('td', 'num', r.v));
+      tr.appendChild(el('td', 'num tv-late', fmtInt(r.d)));
+      tb.appendChild(tr);
+    });
+    // Mede a altura real de uma linha e refaz a paginação se couber mais (ou menos).
+    var tr0 = tb.rows[0];
+    if (tr0 && $('a-body').clientHeight) {
+      var lh = tr0.offsetHeight, ch = tb.parentNode.tHead.offsetHeight;
+      if (Math.abs(lh - (estado.linhaH || 0)) > 1 || Math.abs(ch - (estado.cabH || 0)) > 1) {
+        estado.linhaH = lh; estado.cabH = ch;
+        var antes = estado.porPagina; paginar();
+        if (antes !== estado.porPagina) { desenharAtrasadas(); return; }
+      }
+    }
+    $('a-pag').textContent = estado.paginas > 1 ? 'Página ' + (estado.pagina + 1) + ' de ' + estado.paginas : '';
+  }
+
+  function desenharTudo() {
+    if (!dados) return;
+    desenharResumo();
+    desenharBarras('g-buckets', agrupar(function (t) { return [t.b]; }));
+    desenharBarras('g-usuarios', agrupar(function (t) { return t.r.length ? t.r : ['Sem responsável']; }));
+    desenharAtrasadas();
+    var g = new Date(dados.gerado);
+    var gs = sergipe(g);
+    var horas = (Date.now() - g.getTime()) / 3600000;
+    var a = $('atualizado');
+    a.textContent = 'Dados de ' + pad2(gs.getUTCDate()) + '/' + pad2(gs.getUTCMonth() + 1) + ' às ' + pad2(gs.getUTCHours()) + ':' + pad2(gs.getUTCMinutes());
+    a.className = 'tv-upd' + (horas > 26 ? ' velho' : '');
+    setTimeout(ajustarCorpo, 30);
+  }
+
+  // ===== Rotação =====
+  function passos() {
+    var p = [{ s: 'buckets' }, { s: 'usuarios' }];
+    for (var i = 0; i < Math.max(1, estado.paginas); i++) p.push({ s: 'atrasadas', pg: i });
+    return p;
+  }
+
+  function mostrar() {
+    var ps = passos();
+    if (estado.passo >= ps.length) estado.passo = 0;
+    var atual = ps[estado.passo];
+    var slides = document.querySelectorAll('.tv-slide');
+    for (var i = 0; i < slides.length; i++) {
+      var on = slides[i].getAttribute('data-slide') === atual.s;
+      slides[i].className = 'tv-slide card' + (on ? ' fade' : ' hide');
+    }
+    var bts = document.querySelectorAll('#nav button');
+    for (var j = 0; j < bts.length; j++) bts[j].className = bts[j].getAttribute('data-step') === atual.s ? 'on' : '';
+    if (atual.s === 'atrasadas') { estado.pagina = atual.pg; if (dados) desenharAtrasadas(); }
+    estado.t0 = Date.now();
+    setTimeout(function () { ajustarCorpo(); if (atual.s === 'atrasadas' && dados) { var antes = estado.porPagina; paginar(); if (antes !== estado.porPagina) desenharAtrasadas(); } }, 30);
+  }
+
+  function irPara(tela) {
+    var ps = passos();
+    for (var i = 0; i < ps.length; i++) if (ps[i].s === tela) { estado.passo = i; mostrar(); return; }
+  }
+
+  // ===== Relógio e ponto =====
+  function relogio() {
+    var d = new Date(), s = sergipe(d);
+    var h = s.getUTCHours(), m = s.getUTCMinutes();
+    $('relogio').textContent = pad2(h) + ':' + pad2(m);
+    var dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+    var meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    var dia = dias[s.getUTCDay()];
+    $('data').textContent = dia.charAt(0).toUpperCase() + dia.slice(1) + ', ' + s.getUTCDate() + ' de ' + meses[s.getUTCMonth()];
+    var agoraMin = h * 60 + m;
+    var ativo = Date.now() < estado.demoAte || HORARIOS_PONTO.some(function (x) {
+      var p = x.split(':'), ini = Number(p[0]) * 60 + Number(p[1]);
+      return agoraMin >= ini && agoraMin < ini + MINUTOS_PONTO;
+    });
+    $('ponto').className = 'tv-ponto' + (ativo ? '' : ' hide');
+  }
+
+  // ===== Dados =====
+  function carregar() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'data.json?t=' + Date.now(), true);
+    xhr.onload = function () {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { dados = JSON.parse(xhr.responseText); desenharTudo(); } catch (e) { /* mantém os dados anteriores */ }
+      }
+    };
+    xhr.send();
+  }
+
+  // ===== Início =====
+  ajustarFonte();
+  window.addEventListener('resize', function () { ajustarFonte(); if (dados) desenharTudo(); });
+
+  var bts = document.querySelectorAll('#nav button');
+  for (var i = 0; i < bts.length; i++) bts[i].addEventListener('click', function () { irPara(this.getAttribute('data-step')); });
+
+  $('pausa').addEventListener('click', function () {
+    estado.pausado = !estado.pausado;
+    this.textContent = estado.pausado ? 'Continuar' : 'Pausar';
+    estado.t0 = Date.now();
+  });
+
+  var raiz = document.documentElement;
+  var pedirCheia = raiz.requestFullscreen || raiz.webkitRequestFullscreen;
+  if (!pedirCheia) $('cheia').style.display = 'none';
+  $('cheia').addEventListener('click', function () { try { pedirCheia.call(raiz); } catch (e) {} });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
+    document.addEventListener(ev, function () {
+      var on = document.fullscreenElement || document.webkitFullscreenElement;
+      $('cheia').style.display = on ? 'none' : '';
+      setTimeout(function () { ajustarFonte(); if (dados) desenharTudo(); }, 200);
+    });
+  });
+
+  $('relogio').addEventListener('click', function () { estado.demoAte = Date.now() + 10000; relogio(); setTimeout(relogio, 10100); });
+
+  mostrar();
+  relogio();
+  carregar();
+  setInterval(relogio, 5000);
+  setInterval(carregar, ATUALIZAR_DADOS_MIN * 60000);
+  setTimeout(function () { location.reload(); }, RECARREGAR_PAGINA_H * 3600000);
+
+  setInterval(function () {
+    if (estado.pausado) return;
+    var p = passos()[estado.passo];
+    var dur = p && p.s === 'atrasadas' ? SEGUNDOS_ATRASADAS : SEGUNDOS;
+    var frac = (Date.now() - estado.t0) / (dur * 1000);
+    $('fill').style.width = Math.min(100, frac * 100) + '%';
+    if (frac >= 1) { estado.passo = (estado.passo + 1) % passos().length; mostrar(); }
+  }, 200);
+})();
+</script>
+</body>
+</html>
