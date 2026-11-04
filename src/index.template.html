@@ -208,6 +208,8 @@
   function fmtPct(v) { return Math.round(v * 100) + '%'; }
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
   function limpar(e) { while (e.firstChild) e.removeChild(e.firstChild); }
+  // Dia do calendário em Sergipe (UTC-3). Uma tarefa só atrasa depois que o dia do vencimento termina, como no Planner.
+  function diaSergipe(ms) { return Math.floor((ms + FUSO_OFFSET_H * 3600000) / 86400000); }
   function sergipe(d) { return new Date(d.getTime() + FUSO_OFFSET_H * 3600000); }
 
   // ===== Tamanho proporcional à tela =====
@@ -238,7 +240,7 @@
   // ===== Cálculos =====
   function situacao(t, agora) {
     if (t.p >= 100) return 'conc';
-    if (t.v && Date.parse(t.v) < agora) return 'atr';
+    if (t.v && diaSergipe(Date.parse(t.v)) < diaSergipe(agora)) return 'atr';
     return 'prazo';
   }
 
@@ -262,7 +264,7 @@
       return {
         t: t.t, b: t.b, r: t.r.length ? t.r.join(', ') : 'Sem responsável',
         v: iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4),
-        d: Math.floor((agora - Date.parse(t.v)) / 86400000)
+        d: diaSergipe(agora) - diaSergipe(Date.parse(t.v))
       };
     }).sort(function (a, b) { return b.d - a.d || (a.t < b.t ? -1 : 1); });
   }
@@ -419,7 +421,7 @@
             if (!t.v) return false;
             var venc = Date.parse(t.v), vs = sergipe(new Date(venc));
             if (vs.getUTCFullYear() === ano && vs.getUTCMonth() === mes) return true;
-            return t.p < 100 && venc < agoraMs;
+            return t.p < 100 && diaSergipe(venc) < diaSergipe(agoraMs);
           });
           dados = novo; desenharTudo();
         } catch (e) { /* mantém os dados anteriores */ }
