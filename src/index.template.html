@@ -201,6 +201,8 @@
   var ATUALIZAR_DADOS_MIN = 10;   // busca data.json de novo a cada 10 min
   var RECARREGAR_PAGINA_H = 30;   // a cada 30 min confere se o site mudou (versao.txt) e só então recarrega
   var FUSO_OFFSET_H = -3;         // Sergipe, UTC-3
+  // Nome exibido de cada bucket (código do Planner -> código + nome).
+  var NOMES_BUCKETS = { '134711': '134711 - Religiosa', '4722': '4722 - Educação', '134793': '134793 - Igrejas', '134712': '134712 - Loja' };
 
   var $ = function (id) { return document.getElementById(id); };
   var dados = null;
@@ -473,6 +475,7 @@
             if (vs.getUTCFullYear() === ano && vs.getUTCMonth() === mes) return true;
             return t.p < 100 && diaSergipe(venc) < diaSergipe(agoraMs);
           });
+          novo.tarefas.forEach(function (t) { if (NOMES_BUCKETS[t.b]) t.b = NOMES_BUCKETS[t.b]; });
           dados = novo; desenharTudo();
         } catch (e) { /* mantém os dados anteriores */ }
       }
