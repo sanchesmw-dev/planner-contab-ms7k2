@@ -132,8 +132,8 @@
   </header>
 
   <section class="tv-kpis">
-    <div class="tv-kpi card"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Total de tarefas</p><p class="tv-kpi-num" id="k-total">—</p><p class="tv-kpi-note">abertas + concluídas em 30 dias</p></div></div>
-    <div class="tv-kpi card conc"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Concluídas</p><p class="tv-kpi-num" id="k-conc">—</p><p class="tv-kpi-note">nos últimos 30 dias</p></div><div class="tv-ring" id="anel"><div class="tv-ring-in" id="anel-pct">—</div></div></div>
+    <div class="tv-kpi card"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Total de tarefas</p><p class="tv-kpi-num" id="k-total">—</p><p class="tv-kpi-note">do mês atual + atrasadas anteriores</p></div></div>
+    <div class="tv-kpi card conc"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Concluídas</p><p class="tv-kpi-num" id="k-conc">—</p><p class="tv-kpi-note">com vencimento no mês</p></div><div class="tv-ring" id="anel"><div class="tv-ring-in" id="anel-pct">—</div></div></div>
     <div class="tv-kpi card prazo"><div><p class="tv-kpi-label"><i class="tv-dot"></i>No prazo</p><p class="tv-kpi-num" id="k-prazo">—</p><p class="tv-kpi-note">abertas, prazo não vencido</p></div></div>
     <div class="tv-kpi card atr"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Atrasadas</p><p class="tv-kpi-num" id="k-atr">—</p><p class="tv-kpi-note">abertas, prazo vencido</p></div></div>
   </section>
@@ -198,7 +198,6 @@
   var ATUALIZAR_DADOS_MIN = 10;   // busca data.json de novo a cada 10 min
   var RECARREGAR_PAGINA_H = 6;    // recarrega a página inteira (pega mudanças de layout)
   var FUSO_OFFSET_H = -3;         // Sergipe, UTC-3
-  var DIAS_CONCLUIDAS = 30;       // concluídas há mais tempo que isso não entram (histórico)
 
   var $ = function (id) { return document.getElementById(id); };
   var dados = null;
@@ -413,9 +412,15 @@
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           var novo = JSON.parse(xhr.responseText);
-          var corte = Date.now() - DIAS_CONCLUIDAS * 86400000;
-          // Só o que conta hoje: abertas + concluídas nos últimos 30 dias.
-          novo.tarefas = novo.tarefas.filter(function (t) { return t.p < 100 || (t.c && Date.parse(t.c) >= corte); });
+          // Tarefas do mês atual (vencimento do dia 1 ao último dia, concluídas ou não)
+          // + tarefas abertas atrasadas de meses anteriores. Mês pelo horário de Sergipe.
+          var agoraMs = Date.now(), sg = sergipe(new Date(agoraMs)), ano = sg.getUTCFullYear(), mes = sg.getUTCMonth();
+          novo.tarefas = novo.tarefas.filter(function (t) {
+            if (!t.v) return false;
+            var venc = Date.parse(t.v), vs = sergipe(new Date(venc));
+            if (vs.getUTCFullYear() === ano && vs.getUTCMonth() === mes) return true;
+            return t.p < 100 && venc < agoraMs;
+          });
           dados = novo; desenharTudo();
         } catch (e) { /* mantém os dados anteriores */ }
       }

@@ -17,8 +17,8 @@ import re
 from datetime import datetime, timedelta, timezone
 
 RODAPE = re.compile(r"\n*\[page [^\]]*\]\s*$")
-# Concluídas mais antigas que isso ficam fora do arquivo (a página mostra só as dos últimos 30 dias;
-# a folga cobre o intervalo entre uma atualização e outra).
+# Concluídas com vencimento mais antigo que isso ficam fora do arquivo (a página mostra só as
+# do mês atual; a folga cobre a virada do mês entre uma atualização e outra).
 DIAS_CONCLUIDAS_NO_ARQUIVO = 45
 PRIORIDADE = {1: "Urgente", 3: "Importante", 5: "Média", 9: "Baixa"}
 
@@ -61,8 +61,9 @@ def main():
         perc = int(r.get("Percentual") or 0)
         concl = r.get("Concluida") or None
         if perc >= 100:
+            venc = r.get("Vencimento") or None
             try:
-                quando = datetime.fromisoformat(concl.replace("Z", "+00:00")) if concl else None
+                quando = datetime.fromisoformat(venc.replace("Z", "+00:00")) if venc else None
             except ValueError:
                 quando = None
             if quando is None or quando < corte:
