@@ -392,39 +392,49 @@
     for (var i = 0; i < ps.length; i++) if (ps[i].s === tela) { estado.passo = i; mostrar(); return; }
   }
 
-  // ===== Som do lembrete (gerado no navegador, sem arquivo) =====
-  // Navegadores só liberam som depois de um clique na página: o botão "Ativar som" faz isso.
-  var audio = null;
-  function obterAudio() {
-    var C = window.AudioContext || window.webkitAudioContext;
-    if (!C) return null;
-    if (!audio) { try { audio = new C(); } catch (e) { return null; } }
-    return audio;
-  }
-  function somLiberado() { var a = obterAudio(); return a && a.state === 'running'; }
-  function atualizarBotaoSom() {
-    var ok = somLiberado(), b = $('som');
-    b.className = 'som' + (ok ? ' ok' : '');
-    b.textContent = ok ? '🔊 Som ativo' : '🔇 Ativar som';
-  }
-  function tocarSom() {
-    var ctx = obterAudio();
-    if (!ctx) return;
-    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
-    var notas = [659.25, 880, 1046.5];           // mi, lá, dó: "plim" de três notas
-    for (var rep = 0; rep < 2; rep++) {
-      for (var i = 0; i < notas.length; i++) {
-        var t0 = ctx.currentTime + 0.05 + rep * 1.6 + i * 0.3;
-        var osc = ctx.createOscillator(), g = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = notas[i];
-        g.gain.setValueAtTime(0.0001, t0);
-        g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
-        osc.connect(g); g.connect(ctx.destination);
-        osc.start(t0); osc.stop(t0 + 1.05);
+  // ===== Som do lembrete =====
+  // Monta um pequeno arquivo WAV na memória (mi-lá-dó, duas vezes) e toca com o player padrão do navegador.
+  // Navegadores só liberam som depois de um clique na página: o botão "Ativar som" (ou o relógio) faz isso.
+  var somUrl = null, somOk = false;
+  function gerarSom() {
+    if (somUrl) return somUrl;
+    var taxa = 22050, dur = 3.4, n = Math.floor(taxa * dur);
+    var buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    function txt(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+    txt(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); txt(8, 'WAVE'); txt(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, taxa, true); v.setUint32(28, taxa * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    txt(36, 'data'); v.setUint32(40, n * 2, true);
+    var notas = [659.25, 880, 1046.5], inicios = [];
+    for (var r = 0; r < 2; r++) for (var k = 0; k < 3; k++) inicios.push([r * 1.6 + k * 0.3, notas[k]]);
+    for (var i = 0; i < n; i++) {
+      var t = i / taxa, s = 0;
+      for (var j = 0; j < inicios.length; j++) {
+        var dt = t - inicios[j][0];
+        if (dt >= 0 && dt < 1.0) {
+          var env = dt < 0.02 ? dt / 0.02 : Math.exp(-(dt - 0.02) * 4.5);
+          s += Math.sin(2 * Math.PI * inicios[j][1] * dt) * env * 0.3;
+        }
       }
+      if (s > 1) s = 1; if (s < -1) s = -1;
+      v.setInt16(44 + i * 2, s * 32767, true);
     }
+    somUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+    return somUrl;
+  }
+  function tocarSom(aoTerminar) {
+    try {
+      var a = new Audio(gerarSom());
+      a.volume = 1;
+      var p = a.play();
+      if (p && p.then) p.then(function () { somOk = true; if (aoTerminar) aoTerminar(); }, function () { somOk = false; if (aoTerminar) aoTerminar(); });
+      else { somOk = true; if (aoTerminar) aoTerminar(); }
+    } catch (e) { somOk = false; if (aoTerminar) aoTerminar(); }
+  }
+  function atualizarBotaoSom() {
+    var b = $('som');
+    b.className = 'som' + (somOk ? ' ok' : '');
+    b.textContent = somOk ? '🔊 Som ativo' : '🔇 Ativar som';
   }
 
   // ===== Relógio e ponto =====
@@ -442,7 +452,7 @@
       return agoraMin >= ini && agoraMin < ini + MINUTOS_PONTO;
     });
     $('ponto').className = 'tv-ponto' + (ativo ? '' : ' hide');
-    if (ativo && !estado.pontoAtivo) tocarSom();
+    if (ativo && !estado.pontoAtivo) tocarSom(atualizarBotaoSom);
     estado.pontoAtivo = ativo;
   }
 
@@ -495,23 +505,15 @@
     });
   });
 
-  $('som').addEventListener('click', function () {
-    var a = obterAudio();
-    if (a && a.resume) { var r = a.resume(); if (r && r.then) r.then(atualizarBotaoSom); }
-    tocarSom();
-    setTimeout(atualizarBotaoSom, 300);
-  });
-  obterAudio();
-  setTimeout(atualizarBotaoSom, 500);
-  setInterval(atualizarBotaoSom, 5000);
+  $('som').addEventListener('click', function () { tocarSom(atualizarBotaoSom); });
+  gerarSom();
+  atualizarBotaoSom();
 
   $('relogio').addEventListener('click', function () {
     // Teste: mostra o lembrete por 10 segundos e toca o som (o clique também libera o som no navegador).
-    var a = obterAudio(); if (a && a.resume) a.resume();
-    tocarSom();
+    tocarSom(atualizarBotaoSom);
     estado.pontoAtivo = true;
     estado.demoAte = Date.now() + 10000; relogio(); setTimeout(relogio, 10100);
-    setTimeout(atualizarBotaoSom, 300);
   });
 
   mostrar();
