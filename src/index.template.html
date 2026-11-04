@@ -52,6 +52,7 @@
   .tv-ctrl { display: grid; grid-template-columns: 1fr auto auto auto; grid-gap: .6em; gap: .6em; align-items: center; }
   .tv-ctrl button { border: 1px solid #e5eaf2; background: #fff; }
   .tv-ctrl button.som { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
+  .tv-ctrl button.som.ok { border-color: #86efac; color: #15803d; background: #f0fdf4; }
   .tv-ctrl button.dark { background: #0f172a; color: #fff; border-color: #0f172a; }
   .tv-track { height: .35em; border-radius: 999px; background: #e5eaf2; overflow: hidden; }
   .tv-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #16a34a); }
@@ -401,7 +402,11 @@
     return audio;
   }
   function somLiberado() { var a = obterAudio(); return a && a.state === 'running'; }
-  function atualizarBotaoSom() { $('som').style.display = somLiberado() ? 'none' : ''; }
+  function atualizarBotaoSom() {
+    var ok = somLiberado(), b = $('som');
+    b.className = 'som' + (ok ? ' ok' : '');
+    b.textContent = ok ? '🔊 Som ativo' : '🔇 Ativar som';
+  }
   function tocarSom() {
     var ctx = obterAudio();
     if (!ctx) return;
