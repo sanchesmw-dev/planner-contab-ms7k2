@@ -14,9 +14,12 @@ import csv
 import io
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 RODAPE = re.compile(r"\n*\[page [^\]]*\]\s*$")
+# Concluídas mais antigas que isso ficam fora do arquivo (a página mostra só as dos últimos 30 dias;
+# a folga cobre o intervalo entre uma atualização e outra).
+DIAS_CONCLUIDAS_NO_ARQUIVO = 45
 PRIORIDADE = {1: "Urgente", 3: "Importante", 5: "Média", 9: "Baixa"}
 
 
@@ -49,10 +52,22 @@ def main():
     }
 
     linhas = list(csv.DictReader(io.StringIO(ler_paginas(a.tarefas))))
+    corte = datetime.now(timezone.utc) - timedelta(days=DIAS_CONCLUIDAS_NO_ARQUIVO)
     tarefas = []
+    historico = 0
     for r in linhas:
         if not r.get("Titulo"):
             continue
+        perc = int(r.get("Percentual") or 0)
+        concl = r.get("Concluida") or None
+        if perc >= 100:
+            try:
+                quando = datetime.fromisoformat(concl.replace("Z", "+00:00")) if concl else None
+            except ValueError:
+                quando = None
+            if quando is None or quando < corte:
+                historico += 1
+                continue
         try:
             resp = json.loads(r.get("Responsaveis") or "[]")
         except json.JSONDecodeError:
@@ -63,7 +78,8 @@ def main():
         tarefas.append({
             "t": r["Titulo"].strip(),
             "b": buckets.get(r.get("BucketId") or "", "Sem bucket"),
-            "p": int(r.get("Percentual") or 0),
+            "p": perc,
+            "c": concl,
             "pr": PRIORIDADE.get(prio, ""),
             "v": r.get("Vencimento") or None,
             "r": nomes,
@@ -76,7 +92,8 @@ def main():
     with open(a.out, "w", encoding="utf-8") as f:
         json.dump(saida, f, ensure_ascii=False, separators=(",", ":"))
     abertas = sum(1 for t in tarefas if t["p"] < 100)
-    print(f"{len(tarefas)} tarefas ({abertas} abertas) -> {a.out}")
+    print(f"{len(linhas)} tarefas lidas; {historico} concluídas antigas deixadas de fora; "
+          f"{len(tarefas)} no arquivo ({abertas} abertas) -> {a.out}")
 
 
 if __name__ == "__main__":

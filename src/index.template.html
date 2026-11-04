@@ -132,8 +132,8 @@
   </header>
 
   <section class="tv-kpis">
-    <div class="tv-kpi card"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Total de tarefas</p><p class="tv-kpi-num" id="k-total">—</p><p class="tv-kpi-note">no plano</p></div></div>
-    <div class="tv-kpi card conc"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Concluídas</p><p class="tv-kpi-num" id="k-conc">—</p><p class="tv-kpi-note">do total do plano</p></div><div class="tv-ring" id="anel"><div class="tv-ring-in" id="anel-pct">—</div></div></div>
+    <div class="tv-kpi card"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Total de tarefas</p><p class="tv-kpi-num" id="k-total">—</p><p class="tv-kpi-note">abertas + concluídas em 30 dias</p></div></div>
+    <div class="tv-kpi card conc"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Concluídas</p><p class="tv-kpi-num" id="k-conc">—</p><p class="tv-kpi-note">nos últimos 30 dias</p></div><div class="tv-ring" id="anel"><div class="tv-ring-in" id="anel-pct">—</div></div></div>
     <div class="tv-kpi card prazo"><div><p class="tv-kpi-label"><i class="tv-dot"></i>No prazo</p><p class="tv-kpi-num" id="k-prazo">—</p><p class="tv-kpi-note">abertas, prazo não vencido</p></div></div>
     <div class="tv-kpi card atr"><div><p class="tv-kpi-label"><i class="tv-dot"></i>Atrasadas</p><p class="tv-kpi-num" id="k-atr">—</p><p class="tv-kpi-note">abertas, prazo vencido</p></div></div>
   </section>
@@ -198,6 +198,7 @@
   var ATUALIZAR_DADOS_MIN = 10;   // busca data.json de novo a cada 10 min
   var RECARREGAR_PAGINA_H = 6;    // recarrega a página inteira (pega mudanças de layout)
   var FUSO_OFFSET_H = -3;         // Sergipe, UTC-3
+  var DIAS_CONCLUIDAS = 30;       // concluídas há mais tempo que isso não entram (histórico)
 
   var $ = function (id) { return document.getElementById(id); };
   var dados = null;
@@ -410,7 +411,13 @@
     xhr.open('GET', 'data.json?t=' + Date.now(), true);
     xhr.onload = function () {
       if (xhr.status >= 200 && xhr.status < 300) {
-        try { dados = JSON.parse(xhr.responseText); desenharTudo(); } catch (e) { /* mantém os dados anteriores */ }
+        try {
+          var novo = JSON.parse(xhr.responseText);
+          var corte = Date.now() - DIAS_CONCLUIDAS * 86400000;
+          // Só o que conta hoje: abertas + concluídas nos últimos 30 dias.
+          novo.tarefas = novo.tarefas.filter(function (t) { return t.p < 100 || (t.c && Date.parse(t.c) >= corte); });
+          dados = novo; desenharTudo();
+        } catch (e) { /* mantém os dados anteriores */ }
       }
     };
     xhr.send();
