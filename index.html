@@ -49,8 +49,9 @@
   .tv-nav { display: inline-grid; grid-auto-flow: column; grid-gap: .3em; gap: .3em; padding: .3em; border-radius: 999px; }
   .tv-nav button, .tv-ctrl button { font: inherit; font-size: .85em; font-weight: 500; padding: .45em 1.1em; border-radius: 999px; border: 0; background: transparent; color: #64748b; cursor: pointer; }
   .tv-nav button.on { background: #0f172a; color: #fff; }
-  .tv-ctrl { display: grid; grid-template-columns: 1fr auto auto; grid-gap: .6em; gap: .6em; align-items: center; }
+  .tv-ctrl { display: grid; grid-template-columns: 1fr auto auto auto; grid-gap: .6em; gap: .6em; align-items: center; }
   .tv-ctrl button { border: 1px solid #e5eaf2; background: #fff; }
+  .tv-ctrl button.som { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
   .tv-ctrl button.dark { background: #0f172a; color: #fff; border-color: #0f172a; }
   .tv-track { height: .35em; border-radius: 999px; background: #e5eaf2; overflow: hidden; }
   .tv-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #16a34a); }
@@ -146,6 +147,7 @@
     </nav>
     <div class="tv-ctrl">
       <div class="tv-track"><div class="tv-fill" id="fill"></div></div>
+      <button type="button" id="som" class="som">🔇 Ativar som</button>
       <button type="button" id="pausa">Pausar</button>
       <button type="button" id="cheia" class="dark">Tela cheia</button>
     </div>
@@ -196,7 +198,7 @@
   var HORARIOS_PONTO = ['07:30', '12:00', '13:00', '17:30', '19:00'];
   var MINUTOS_PONTO = 5;
   var ATUALIZAR_DADOS_MIN = 10;   // busca data.json de novo a cada 10 min
-  var RECARREGAR_PAGINA_H = 6;    // recarrega a página inteira (pega mudanças de layout)
+  var RECARREGAR_PAGINA_H = 30;   // a cada 30 min confere se o site mudou (versao.txt) e só então recarrega
   var FUSO_OFFSET_H = -3;         // Sergipe, UTC-3
 
   var $ = function (id) { return document.getElementById(id); };
@@ -389,6 +391,37 @@
     for (var i = 0; i < ps.length; i++) if (ps[i].s === tela) { estado.passo = i; mostrar(); return; }
   }
 
+  // ===== Som do lembrete (gerado no navegador, sem arquivo) =====
+  // Navegadores só liberam som depois de um clique na página: o botão "Ativar som" faz isso.
+  var audio = null;
+  function obterAudio() {
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    if (!audio) { try { audio = new C(); } catch (e) { return null; } }
+    return audio;
+  }
+  function somLiberado() { var a = obterAudio(); return a && a.state === 'running'; }
+  function atualizarBotaoSom() { $('som').style.display = somLiberado() ? 'none' : ''; }
+  function tocarSom() {
+    var ctx = obterAudio();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    var notas = [659.25, 880, 1046.5];           // mi, lá, dó: "plim" de três notas
+    for (var rep = 0; rep < 2; rep++) {
+      for (var i = 0; i < notas.length; i++) {
+        var t0 = ctx.currentTime + 0.05 + rep * 1.6 + i * 0.3;
+        var osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = notas[i];
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(t0); osc.stop(t0 + 1.05);
+      }
+    }
+  }
+
   // ===== Relógio e ponto =====
   function relogio() {
     var d = new Date(), s = sergipe(d);
@@ -404,6 +437,8 @@
       return agoraMin >= ini && agoraMin < ini + MINUTOS_PONTO;
     });
     $('ponto').className = 'tv-ponto' + (ativo ? '' : ' hide');
+    if (ativo && !estado.pontoAtivo) tocarSom();
+    estado.pontoAtivo = ativo;
   }
 
   // ===== Dados =====
@@ -455,14 +490,36 @@
     });
   });
 
-  $('relogio').addEventListener('click', function () { estado.demoAte = Date.now() + 10000; relogio(); setTimeout(relogio, 10100); });
+  $('som').addEventListener('click', function () {
+    var a = obterAudio();
+    if (a && a.resume) { var r = a.resume(); if (r && r.then) r.then(atualizarBotaoSom); }
+    tocarSom();
+    setTimeout(atualizarBotaoSom, 300);
+  });
+  obterAudio();
+  setTimeout(atualizarBotaoSom, 500);
+  setInterval(atualizarBotaoSom, 5000);
+
+  $('relogio').addEventListener('click', function () {
+    var a = obterAudio(); if (a && a.resume) a.resume(); setTimeout(atualizarBotaoSom, 300); estado.demoAte = Date.now() + 10000; relogio(); setTimeout(relogio, 10100); });
 
   mostrar();
   relogio();
   carregar();
   setInterval(relogio, 5000);
   setInterval(carregar, ATUALIZAR_DADOS_MIN * 60000);
-  setTimeout(function () { location.reload(); }, RECARREGAR_PAGINA_H * 3600000);
+  // Recarrega só quando o site foi alterado (recarregar bloqueia o som de novo até um clique).
+  var versaoAtual = null;
+  setInterval(function () {
+    var x = new XMLHttpRequest();
+    x.open('GET', 'versao.txt?t=' + Date.now(), true);
+    x.onload = function () {
+      if (x.status !== 200) return;
+      var v = x.responseText.trim();
+      if (versaoAtual === null) versaoAtual = v; else if (v !== versaoAtual) location.reload();
+    };
+    x.send();
+  }, RECARREGAR_PAGINA_H * 60000);
 
   setInterval(function () {
     if (estado.pausado) return;
