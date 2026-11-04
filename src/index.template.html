@@ -506,7 +506,13 @@
   setInterval(atualizarBotaoSom, 5000);
 
   $('relogio').addEventListener('click', function () {
-    var a = obterAudio(); if (a && a.resume) a.resume(); setTimeout(atualizarBotaoSom, 300); estado.demoAte = Date.now() + 10000; relogio(); setTimeout(relogio, 10100); });
+    // Teste: mostra o lembrete por 10 segundos e toca o som (o clique também libera o som no navegador).
+    var a = obterAudio(); if (a && a.resume) a.resume();
+    tocarSom();
+    estado.pontoAtivo = true;
+    estado.demoAte = Date.now() + 10000; relogio(); setTimeout(relogio, 10100);
+    setTimeout(atualizarBotaoSom, 300);
+  });
 
   mostrar();
   relogio();
