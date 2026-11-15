@@ -91,6 +91,29 @@
   .tv-empty { text-align: center; font-size: 1.4em; color: #64748b; padding-top: 2em; }
   .tv-msg { text-align: center; color: #64748b; font-size: 1.2em; padding-top: 3em; }
 
+  /* Calendário */
+  .tv-cal { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+  .tv-cal-sem { display: grid; grid-template-columns: repeat(7, 1fr); grid-gap: .5em; gap: .5em; margin-bottom: .4em; }
+  .tv-cal-sem div { text-align: center; font-size: .78em; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+  .tv-cal-grade { display: grid; grid-template-columns: repeat(7, 1fr); grid-gap: .5em; gap: .5em; }
+  .tv-dia { position: relative; border-radius: .7em; background: #f8fafc; border: 1px solid #e5eaf2; padding: .35em .5em; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+  .tv-dia.vazio { background: transparent; border-color: transparent; }
+  .tv-dia.fds { background: #f1f5f9; }
+  .tv-dia.tem-atr { border-color: #fca5a5; background: #fef2f2; }
+  .tv-dia.tudo-ok { border-color: #86efac; background: #f0fdf4; }
+  .tv-dia.hoje { box-shadow: 0 0 0 .18em #0f172a inset; }
+  .tv-dia-topo { display: flex; justify-content: space-between; align-items: baseline; }
+  .tv-dia-num { font-weight: 700; font-size: 1.05em; }
+  .fds .tv-dia-num, .vazio .tv-dia-num { color: #94a3b8; }
+  .tv-dia-hoje { font-size: .62em; font-weight: 700; color: #fff; background: #0f172a; border-radius: 999px; padding: .1em .55em; margin-left: .35em; vertical-align: .2em; }
+  .tv-dia-total { font-size: .75em; color: #64748b; }
+  .tv-dia-bar { display: flex; height: .45em; border-radius: 999px; overflow: hidden; background: #e5eaf2; margin: .25em 0; }
+  .tv-dia-bar i { display: block; height: 100%; }
+  .tv-dia-cont { font-size: .8em; font-weight: 600; white-space: nowrap; overflow: hidden; }
+  .tv-dia-cont span { margin-right: .55em; }
+  .k-conc { color: #16a34a; } .k-prazo { color: #3b82f6; } .k-atr { color: #ef4444; }
+  .tv-cal-extra { margin: 0; font-size: .85em; color: #64748b; padding: .3em .8em; border-radius: 999px; background: #fef2f2; }
+  .tv-cal-extra b { color: #ef4444; }
   .tv-foot { margin: 0; text-align: center; font-size: .9em; line-height: 1.35; color: #64748b; font-style: italic; }
   .tv-foot b { font-style: normal; font-weight: 600; color: #0f172a; }
 
@@ -144,7 +167,7 @@
     <nav class="tv-nav card" id="nav">
       <button type="button" data-step="buckets">Por bucket</button>
       <button type="button" data-step="usuarios">Por usuário</button>
-      <button type="button" data-step="atrasadas">Tarefas atrasadas</button>
+      <button type="button" data-step="calendario">Calendário</button>
     </nav>
     <div class="tv-ctrl">
       <div class="tv-track"><div class="tv-fill" id="fill"></div></div>
@@ -171,18 +194,19 @@
       <div class="tv-body"><div class="tv-bars" id="g-usuarios"><div class="tv-msg">Carregando…</div></div></div>
     </section>
 
-    <section class="tv-slide card hide" data-slide="atrasadas">
+    <section class="tv-slide card hide" data-slide="calendario">
       <div class="tv-slide-head">
-        <div><h2 class="tv-h2"><span id="a-total">—</span> tarefas atrasadas</h2><p class="tv-note">Abertas com prazo já vencido, das mais antigas para as mais recentes.</p></div>
-        <p class="tv-pg" id="a-pag"></p>
+        <div><h2 class="tv-h2">Calendário de <span id="c-mes">—</span></h2><p class="tv-note">Tarefas por dia de vencimento. Verde: tudo concluído · vermelho: tem atraso · contorno escuro: hoje.</p></div>
+        <div style="text-align:right">
+          <p class="tv-cal-extra" id="c-ant" style="display:inline-block;margin-bottom:.4em">+ <b id="c-ant-n">0</b> atrasadas de meses anteriores</p>
+          <div class="tv-legend"><span><i class="tv-sw c-conc"></i>Concluídas</span><span><i class="tv-sw c-prazo"></i>No prazo</span><span><i class="tv-sw c-atr"></i>Atrasadas</span></div>
+        </div>
       </div>
-      <div class="tv-body" id="a-body">
-        <table class="tv-table">
-          <colgroup><col style="width:40%"><col style="width:24%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>
-          <thead><tr><th>Tarefa</th><th>Responsável</th><th>Bucket</th><th class="num">Vencimento</th><th class="num">Dias de atraso</th></tr></thead>
-          <tbody id="a-linhas"></tbody>
-        </table>
-        <div class="tv-empty hide-me" id="a-vazio" style="display:none">Nenhuma tarefa atrasada.</div>
+      <div class="tv-body">
+        <div class="tv-cal">
+          <div class="tv-cal-sem"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+          <div class="tv-cal-grade" id="c-grade"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -194,7 +218,7 @@
 (function () {
   'use strict';
   // ===== Configuração =====
-  var SEGUNDOS = 20;              // telas por bucket e por usuário
+  var SEGUNDOS = 20;              // tempo de cada tela (bucket, usuário, calendário)
   var SEGUNDOS_ATRASADAS = 5;     // cada página da lista de atrasadas
   var HORARIOS_PONTO = ['07:30', '12:00', '13:00', '17:30', '19:00'];
   var MINUTOS_PONTO = 5;
@@ -283,7 +307,6 @@
     $('k-prazo').textContent = fmtInt(c.prazo);
     $('k-atr').textContent = fmtInt(c.atr);
     $('k-atr').className = 'tv-kpi-num' + (c.atr > 0 ? ' bad' : '');
-    $('a-total').textContent = fmtInt(c.atr);
     var pct = total ? c.conc / total : 0;
     $('anel-pct').textContent = fmtPct(pct);
     $('anel').style.background = 'conic-gradient(#16a34a ' + (pct * 100) + '%, #edf1f7 0)';
@@ -351,12 +374,64 @@
     $('a-pag').textContent = estado.paginas > 1 ? 'Página ' + (estado.pagina + 1) + ' de ' + estado.paginas : '';
   }
 
+  // ===== Calendário do mês =====
+  function desenharCalendario() {
+    var agora = Date.now(), hoje = sergipe(new Date(agora));
+    var ano = hoje.getUTCFullYear(), mes = hoje.getUTCMonth(), diaHoje = hoje.getUTCDate();
+    var meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    $('c-mes').textContent = meses[mes] + ' de ' + ano;
+    var porDia = {}, anteriores = 0;
+    dados.tarefas.forEach(function (t) {
+      if (!t.v) return;
+      var v = sergipe(new Date(Date.parse(t.v)));
+      if (v.getUTCFullYear() !== ano || v.getUTCMonth() !== mes) { anteriores++; return; }
+      var d = v.getUTCDate();
+      if (!porDia[d]) porDia[d] = { total: 0, conc: 0, prazo: 0, atr: 0 };
+      porDia[d].total++; porDia[d][situacao(t, agora)]++;
+    });
+    $('c-ant-n').textContent = fmtInt(anteriores);
+    $('c-ant').style.display = anteriores ? 'inline-block' : 'none';
+    var primeiro = new Date(Date.UTC(ano, mes, 1)).getUTCDay();
+    var nDias = new Date(Date.UTC(ano, mes + 1, 0)).getUTCDate();
+    var semanas = Math.ceil((primeiro + nDias) / 7);
+    var grade = $('c-grade');
+    limpar(grade);
+    grade.style.gridTemplateRows = 'repeat(' + semanas + ', 1fr)';
+    for (var i = 0; i < semanas * 7; i++) {
+      var d = i - primeiro + 1, cel = el('div', 'tv-dia');
+      if (d < 1 || d > nDias) { cel.className += ' vazio'; grade.appendChild(cel); continue; }
+      var sem = i % 7, x = porDia[d];
+      if (sem === 0 || sem === 6) cel.className += ' fds';
+      if (x && x.atr) cel.className += ' tem-atr'; else if (x && x.conc === x.total) cel.className += ' tudo-ok';
+      if (d === diaHoje) cel.className += ' hoje';
+      var topo = el('div', 'tv-dia-topo'), num = el('span', 'tv-dia-num', String(d));
+      if (d === diaHoje) num.appendChild(el('span', 'tv-dia-hoje', 'HOJE'));
+      topo.appendChild(num);
+      if (x) topo.appendChild(el('span', 'tv-dia-total', x.total + (x.total === 1 ? ' tarefa' : ' tarefas')));
+      cel.appendChild(topo);
+      if (x) {
+        var bar = el('div', 'tv-dia-bar');
+        [['conc', '#16a34a'], ['prazo', '#3b82f6'], ['atr', '#ef4444']].forEach(function (p) {
+          if (!x[p[0]]) return;
+          var seg = el('i'); seg.style.width = (x[p[0]] / x.total * 100) + '%'; seg.style.background = p[1]; bar.appendChild(seg);
+        });
+        cel.appendChild(bar);
+        var cont = el('div', 'tv-dia-cont');
+        if (x.conc) cont.appendChild(el('span', 'k-conc', '✓ ' + x.conc));
+        if (x.prazo) cont.appendChild(el('span', 'k-prazo', '● ' + x.prazo));
+        if (x.atr) cont.appendChild(el('span', 'k-atr', '! ' + x.atr));
+        cel.appendChild(cont);
+      }
+      grade.appendChild(cel);
+    }
+  }
+
   function desenharTudo() {
     if (!dados) return;
     desenharResumo();
     desenharBarras('g-buckets', agrupar(function (t) { return [t.b]; }));
     desenharBarras('g-usuarios', agrupar(function (t) { return t.r.length ? t.r : ['Sem responsável']; }));
-    desenharAtrasadas();
+    desenharCalendario();
     var g = new Date(dados.gerado);
     var gs = sergipe(g);
     var horas = (Date.now() - g.getTime()) / 3600000;
@@ -369,7 +444,7 @@
   // ===== Rotação =====
   function passos() {
     var p = [{ s: 'buckets' }, { s: 'usuarios' }];
-    for (var i = 0; i < Math.max(1, estado.paginas); i++) p.push({ s: 'atrasadas', pg: i });
+    p.push({ s: 'calendario' });
     return p;
   }
 
@@ -384,9 +459,8 @@
     }
     var bts = document.querySelectorAll('#nav button');
     for (var j = 0; j < bts.length; j++) bts[j].className = bts[j].getAttribute('data-step') === atual.s ? 'on' : '';
-    if (atual.s === 'atrasadas') { estado.pagina = atual.pg; if (dados) desenharAtrasadas(); }
     estado.t0 = Date.now();
-    setTimeout(function () { ajustarCorpo(); if (atual.s === 'atrasadas' && dados) { var antes = estado.porPagina; paginar(); if (antes !== estado.porPagina) desenharAtrasadas(); } }, 30);
+    setTimeout(ajustarCorpo, 30);
   }
 
   function irPara(tela) {
@@ -540,7 +614,7 @@
   setInterval(function () {
     if (estado.pausado) return;
     var p = passos()[estado.passo];
-    var dur = p && p.s === 'atrasadas' ? SEGUNDOS_ATRASADAS : SEGUNDOS;
+    var dur = SEGUNDOS;
     var frac = (Date.now() - estado.t0) / (dur * 1000);
     $('fill').style.width = Math.min(100, frac * 100) + '%';
     if (frac >= 1) { estado.passo = (estado.passo + 1) % passos().length; mostrar(); }
